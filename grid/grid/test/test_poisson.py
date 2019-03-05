@@ -29,48 +29,6 @@ import pkg_resources
 from grid import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 
-@attr('slow')
-def test_solve_poisson_becke_n2():
-
-    mol = np.load(pkg_resources.resource_filename("grid.test.data", "n2_hfs_sto3g.npz"))
-
-    lmaxmax = 4
-
-    # compute hartree potential on a molecular grid
-    molgrid = BeckeMolGrid(mol["coordinates"], mol["numbers"], mol["pseudo_numbers"], 'veryfine',
-                           random_rotate=False, mode='keep')
-
-    reference = mol["grid_potential"]
-
-    # construct the same potential numerically with Becke's method
-    rho = mol["grid_density"]
-    begin = 0
-    hds = []
-    for i in range(mol["natom"]):
-        atgrid = molgrid.subgrids[i]
-        end = begin + atgrid.size
-        becke_weights = molgrid.becke_weights[begin:end]
-        density_decomposition = atgrid.get_spherical_decomposition(rho[begin:end], becke_weights,
-                                                                   lmax=lmaxmax)
-        hartree_decomposition = solve_poisson_becke(density_decomposition)
-        hds.append(hartree_decomposition)
-        begin = end
-
-    # Evaluate the splines obtained with Becke's method on the molecular grid
-    # Increasing angular momenta are used to check the convergence.
-    last_error = None
-    for lmax in range(0, lmaxmax + 1):
-        result = molgrid.zeros()
-        for i in range(mol["natom"]):
-            molgrid.eval_decomposition(hds[i][:(lmax + 1) ** 2], mol["coordinates"][i], result)
-        potential_error = result - reference
-        error = molgrid.integrate(potential_error, potential_error) ** 0.5
-        if last_error is not None:
-            assert error < last_error
-        last_error = error
-    assert error < 6e-2
-
-
 def test_solve_poisson_becke_sa():
     sigma = 8.0
     rtf = ExpRTransform(1e-4, 1e2, 500)

@@ -29,6 +29,7 @@ import pkg_resources
 from nose.tools import assert_raises
 
 from grid import *  # pylint: disable=wildcard-import,unused-wildcard-import
+from grid.grid.rtransform import RTransform, LinearRTransform, ExpRTransform, PowerRTransform
 from grid.test.common import tmpdir
 from grid.units import angstrom
 
@@ -271,45 +272,6 @@ def test_spherical_average_grads2():
     sad_check = (-2 * r - 1) * np.exp(-r ** 2 - r)
     assert abs(say - say_check).max() < 1e-10
     assert abs(sad - sad_check).max() < 1e-10
-
-
-def test_spherical_decomposition_hydrogen_1s():
-    ag, fn = get_hydrogen_1s()
-    sa_fns = ag.get_spherical_decomposition(fn, lmax=4)
-    sa_check = np.exp(-2 * ag.rgrid.radii) / np.pi * np.sqrt(4 * np.pi)
-    assert abs(sa_fns[0].y - sa_check).max() < 1e-10
-    for sa_fn in sa_fns[1:]:
-        assert abs(sa_fn.y).max() < 1e-10
-
-
-def test_spherical_decomposition_hydrogen_1pz():
-    ag, fn = get_hydrogen_1pz()
-    sa_fns = ag.get_spherical_decomposition(fn, lmax=4)
-    # s
-    sa_check = np.exp(-ag.rgrid.radii) / (32.0 * np.pi) * (
-            1.0 / 3.0) * ag.rgrid.radii ** 2 * np.sqrt(4 * np.pi)
-    assert abs(sa_fns[0].y - sa_check).max() < 1e-10
-    # p
-    for sa_fn in sa_fns[1:4]:
-        assert abs(sa_fn.y).max() < 1e-10
-    # d
-    sa_check = np.exp(-ag.rgrid.radii) / (32.0 * np.pi) * (
-            2.0 / 15.0) * ag.rgrid.radii ** 2 * np.sqrt(5 * 4 * np.pi)
-    assert abs(sa_fns[4].y - sa_check).max() < 1e-10
-
-
-def test_spherical_decomposition_hydrogen_1pz_conventions():
-    ag, fn = get_hydrogen_1pz()
-    sa_fns = ag.get_spherical_decomposition(fn, lmax=4)
-    multipoles = ag.integrate(fn, center=ag.center, mtype=2, lmax=4)
-    # s
-    assert abs(ag.rgrid.integrate(sa_fns[0].y) - np.sqrt(4 * np.pi)) < 1e-3
-    assert abs(multipoles[0] - 1.0) < 1e-3
-    # d
-    r = ag.rgrid.rtransform.get_radii()
-    qzz = ag.rgrid.integrate(sa_fns[4].y, r, r) / np.sqrt(5 * 4 * np.pi)
-    print()
-    assert abs(multipoles[4] - qzz) < 1e-10
 
 
 def test_atgrid_attrs():
