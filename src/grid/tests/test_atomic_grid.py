@@ -78,6 +78,23 @@ class TestAtomicGrid(TestCase):
                 target_grid.weights[ind[i] : ind[i + 1]], ref_grid.weights * rad_wts[i]
             )
 
+    def test_atomic_grid(center):
+        rad_pts = np.array([0.1, 0.5, 1])
+        rad_wts = np.array([0.3, 0.4, 0.3])
+        rad_grid = Grid(rad_pts, rad_wts)
+        degs = np.array([3, 5, 7])
+        center = np.array([0, 0, 0])
+        ref_center = np.random.rand(3)
+        target_grid, ind = AtomicGridFactory._generate_atomic_grid(
+            rad_grid, degs, center
+        )
+        ref_grid, ref_ind = AtomicGridFactory._generate_atomic_grid(
+            rad_grid, degs, ref_center
+        )
+        assert_allclose(target_grid.points + ref_center, ref_grid.points)
+        assert_allclose(target_grid.weights, ref_grid.weights)
+        assert_allclose(target_grid.center + ref_center, ref_grid.center)
+
     def test_error_raises(self):
         """Tests for error raises."""
         with self.assertRaises(TypeError):

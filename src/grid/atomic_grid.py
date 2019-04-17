@@ -152,5 +152,7 @@ class AtomicGridFactory:
             all_points.append(points)
             all_weights.append(weights)
         indices = index_array
-        atomic_grid = AtomicGrid(np.vstack(all_points) + center, np.hstack(all_weights))
+        atomic_grid = AtomicGrid(
+            np.vstack(all_points) + center, np.hstack(all_weights), center
+        )
         return atomic_grid, indices
