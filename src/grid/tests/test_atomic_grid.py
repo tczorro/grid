@@ -79,6 +79,7 @@ class TestAtomicGrid(TestCase):
             )
 
     def test_atomic_grid(center):
+        """Test atomic grid points, weights and center."""
         rad_pts = np.array([0.1, 0.5, 1])
         rad_wts = np.array([0.3, 0.4, 0.3])
         rad_grid = Grid(rad_pts, rad_wts)
