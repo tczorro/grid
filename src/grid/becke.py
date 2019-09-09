@@ -19,8 +19,9 @@
 # --
 """Becke Weights Module."""
 
-
 import warnings
+
+from becke.becke import compute_becke_weights, compute_select_becke
 
 from grid.utils import get_cov_radii
 
@@ -108,7 +109,7 @@ class BeckeWeights:
         return x
 
     def generate_weights(
-        self, points, atom_coords, atom_nums, *, select=None, pt_ind=None
+        self, points, atom_coords, atom_nums, *, select=None, pt_ind=None, cpy=True
     ):
         r"""Calculate Becke integration weights of points for select atom.
 
@@ -137,7 +138,7 @@ class BeckeWeights:
         if select is None:
             select = np.arange(len(atom_coords))
         elif isinstance(select, (np.integer, int)):
-            select = [select]
+            select = np.array([select])
         # check ``pt_ind`` points index
         if pt_ind is None:
             pt_ind = []
@@ -147,6 +148,21 @@ class BeckeWeights:
         sectors = max(len(pt_ind) - 1, 1)  # total sectors
         if sectors != len(select):
             raise ValueError("# of select does not equal to # of indices.")
+        radii = np.array([self._radii[num] for num in atom_nums])
+        if cpy is True:
+            if len(select) == 1:
+                weights = compute_select_becke(
+                    points, atom_coords, radii, np.array(select), 3
+                )
+            else:
+                weights = compute_becke_weights(
+                    points,
+                    atom_coords,
+                    radii,
+                    np.array(select),
+                    np.array(pt_ind, dtype=int),
+                )
+            return np.asarray(weights)
         weights = np.zeros(len(points))
         n_p = np.linalg.norm(atom_coords[:, None] - points, axis=-1)
         # |r_A - r| - |r_B - r| for each points with pair(A, B) nucleus
@@ -157,7 +173,6 @@ class BeckeWeights:
             warnings.simplefilter("ignore")
             mu_n_p_p = p_p_n.transpose([2, 0, 1]) / atomic_dist
         del p_p_n
-        radii = np.array([self._radii[num] for num in atom_nums])
         alpha = BeckeWeights._calculate_alpha(radii)
         v_pp = mu_n_p_p + alpha * (1 - mu_n_p_p ** 2)
         del mu_n_p_p
@@ -201,17 +216,13 @@ class BeckeWeights:
         # Becke weights are computed for "chunks" of grid points
         # to counteract the scaling of the memory usage of the
         # vectorized implementation of the Becke partitioning.
-        npoints = points.shape[0]
-        chunk_size = max(1, (10 * npoints) // atom_coords.shape[0] ** 2)
-        aim_weights = np.concatenate(
-            [
-                self.generate_weights(
-                    points[ibegin : ibegin + chunk_size],
-                    atom_coords,
-                    atom_nums,
-                    pt_ind=(indices - ibegin).clip(min=0),
-                )
-                for ibegin in range(0, npoints, chunk_size)
-            ]
+        # npoints = points.shape[0]
+        # chunk_size = max(1, (10 * npoints) // atom_coords.shape[0] ** 2)
+        aim_weights = self.generate_weights(
+            points, atom_coords, atom_nums, pt_ind=indices
         )
-        return aim_weights
+        #         )
+        #         for ibegin in range(0, npoints, chunk_size)
+        #     ]
+        # )
+        return np.asarray(aim_weights)

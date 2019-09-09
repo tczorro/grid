@@ -149,7 +149,6 @@ class TestMolGrid(TestCase):
             )
             for center in centers
         ]
-
         becke = BeckeWeights(order=3)
         mg = MolGrid(atgs, becke, np.array([1] * len(centers)))
         fn = 0
